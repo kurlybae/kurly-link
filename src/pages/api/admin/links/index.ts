@@ -8,7 +8,7 @@ import { KEY_BASE, KEY_LENGTH } from '@/constants/key';
 // P(62,10) = 390164706723052800
 const genKey = customAlphabet(KEY_BASE);
 
-export default async (req: NextApiRequest, res: NextApiResponse) => {
+export default async function links(req: NextApiRequest, res: NextApiResponse) {
   const method = req.method || '';
   if (/get/i.test(method)) {
     res.json(await storage.getAll());
@@ -26,4 +26,4 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   res.status(404).send('Not Found');
-};
+}

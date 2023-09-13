@@ -11,7 +11,7 @@ export default function Link({
 }
 export const getServerSideProps: GetServerSideProps<{
   linkData: LinkData;
-}> = async ({ req, res, query }) => {
+}> = async ({ req, query }) => {
   const key = query.key;
   if (typeof key === 'string' && key.length === KEY_LENGTH) {
     const data = await storage.get(key);
