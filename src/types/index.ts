@@ -3,4 +3,6 @@ export interface LinkData {
   iosUrl?: string;
   aosUrl?: string;
   appOnly: boolean;
+  requestName: string;
+  requestEmail: string;
 }

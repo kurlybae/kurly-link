@@ -3,13 +3,15 @@ import { Fragment } from 'react';
 import { LinkData } from '@/types';
 import axios from 'axios';
 
-const stringFields: (keyof Omit<LinkData, 'appOnly'>)[] = [
+type FormData = Omit<LinkData, 'requestName' | 'requestEmail'>;
+
+const stringFields: (keyof Omit<FormData, 'appOnly'>)[] = [
   'webUrl',
   'iosUrl',
   'aosUrl',
 ];
 
-const fieldTitles: Record<keyof LinkData, string> = {
+const fieldTitles: Record<keyof FormData, string> = {
   webUrl: '웹 링크',
   iosUrl: 'IOS 링크',
   aosUrl: '안드로이드 링크',
@@ -30,7 +32,7 @@ function checkUrl(url: string, isRequired = false) {
 export default function Setting() {
   return (
     <>
-      <Formik<LinkData>
+      <Formik<FormData>
         initialValues={{
           webUrl: '',
           iosUrl: '',
@@ -38,13 +40,13 @@ export default function Setting() {
           appOnly: false,
         }}
         onSubmit={async (data) => {
-          await axios('/api/admin/links', {
-            method: 'post',
-            data,
-          });
+          const result = await axios
+            .post<{ key: string }>('/api/admin/links', data)
+            .then((x) => x.data.key);
+          alert('등록완료' + result);
         }}
         validate={({ webUrl, iosUrl, aosUrl }) => {
-          const error: Partial<LinkData> = {};
+          const error: Partial<FormData> = {};
           // const checkWebUrl = checkUrl(webUrl, true);
           // if (checkWebUrl) {
           //   error.webUrl = checkWebUrl;

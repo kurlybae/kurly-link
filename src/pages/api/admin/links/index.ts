@@ -3,6 +3,8 @@ import { customAlphabet } from 'nanoid';
 import storage from '@/libs/storage';
 import { LinkData } from '@/types';
 import { KEY_BASE, KEY_LENGTH } from '@/constants/key';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/pages/api/auth/[...nextauth]';
 
 // 62개 문자 중 10개 순열
 // P(62,10) = 390164706723052800
@@ -16,6 +18,12 @@ export default async function links(req: NextApiRequest, res: NextApiResponse) {
   } else if (/post/i.test(method)) {
     const body: LinkData = req.body;
     if (body.webUrl) {
+      const session = await getServerSession(req, res, authOptions);
+      if (!session?.user?.email || !session?.user?.name) {
+        throw new Error('정상적인 사용자가 아님');
+      }
+      body.requestEmail = session.user.email;
+      body.requestName = session.user.name;
       const key = genKey(KEY_LENGTH);
       await storage.set(key, body);
       res.json({ key });

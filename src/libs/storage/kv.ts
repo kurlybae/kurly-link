@@ -1,8 +1,6 @@
 import { kv } from '@vercel/kv';
 import { LinkData } from '@/types';
 import { Storage } from '@/libs/storage/index';
-import { tryParseJson } from '@/utils/json-parser';
-import { isDefined } from '@/utils/type-helper';
 
 const APP_KEY = 'links:';
 
@@ -12,28 +10,19 @@ export default class KvStorage implements Storage {
     if (keys.length === 0) {
       return [];
     }
-    const list = await kv.mget(...keys);
+    const list = await kv.mget<LinkData[]>(...keys);
 
-    return list
-      .map((data, idx) => {
-        const parsed = tryParseJson<LinkData>(data);
-        if (parsed) {
-          return { key: keys[idx].replace(APP_KEY, ''), ...parsed };
-        }
-      })
-      .filter(isDefined);
+    return list.map((data, idx) => ({
+      key: keys[idx].replace(APP_KEY, ''),
+      ...data,
+    }));
   }
 
   async get(key: string) {
-    const result = await kv.get(APP_KEY + key);
-    if (typeof result === 'string') {
-      try {
-        return JSON.parse(result) as LinkData;
-      } catch (e) {}
-    }
+    return kv.get<LinkData>(APP_KEY + key).then((x) => x ?? undefined);
   }
 
   async set(key: string, data: LinkData) {
-    await kv.set(APP_KEY + key, JSON.stringify(data));
+    await kv.set(APP_KEY + key, data, { ex: 10000 });
   }
 }
