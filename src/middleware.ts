@@ -5,7 +5,7 @@ export default withAuth(
   function middleware(req) {
     const { pathname } = req.nextUrl;
     if (pathname === '/') {
-      return NextResponse.redirect(process.env.HOME_URL || '');
+      return NextResponse.redirect(process.env.FALLBACK_URL || '');
     }
     return NextResponse.next();
   },

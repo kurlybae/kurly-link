@@ -17,11 +17,11 @@ export default class RedisStorage implements Storage {
     this.client.on('error', (err) => console.log('Redis Client Error', err));
   }
 
-  async getAll() {
+  async getAll(key?: string[]) {
     if (!this.client.isOpen) {
       await this.client.connect();
     }
-    const keys = await this.client.keys(APP_KEY + '*');
+    const keys = key ?? (await this.client.keys(APP_KEY + '*'));
     if (keys.length === 0) {
       await this.client.disconnect();
       return [];
@@ -29,10 +29,10 @@ export default class RedisStorage implements Storage {
     const list = await this.client.mGet(keys);
     await this.client.disconnect();
     return list
-      .map((data, idx) => {
+      .map((data) => {
         const parsed = tryParseJson<LinkData>(data);
         if (parsed) {
-          return { key: keys[idx].replace(APP_KEY, ''), ...parsed };
+          return parsed;
         }
       })
       .filter(isDefined);
@@ -50,8 +50,16 @@ export default class RedisStorage implements Storage {
   }
 
   async set(key: string, data: LinkData) {
+    const px = data.expireDate - data.registerDate;
     await this.client.connect();
-    await this.client.set(APP_KEY + key, JSON.stringify(data));
+    await this.client.set(APP_KEY + key, JSON.stringify(data), { PX: px });
+    await this.client.disconnect();
+  }
+
+  async delete(key: string | string[]) {
+    await this.client.connect();
+    const target = key instanceof Array ? key : [key];
+    await Promise.all(target.map((x) => this.client.del(APP_KEY + x)));
     await this.client.disconnect();
   }
 }

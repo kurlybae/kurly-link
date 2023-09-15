@@ -8,11 +8,10 @@ export default class MemoryStorage implements Storage {
     this.store = new Map();
   }
 
-  async getAll() {
-    return Array.from(this.store.entries()).map(([key, value]) => ({
-      key,
-      ...value,
-    }));
+  async getAll(key?: string[]) {
+    return Array.from(this.store.values()).filter(
+      (x) => !key || key.includes(x.key),
+    );
   }
 
   async get(key: string) {
@@ -20,6 +19,17 @@ export default class MemoryStorage implements Storage {
   }
 
   async set(key: string, data: LinkData) {
+    const px = data.expireDate - data.registerDate;
     this.store.set(key, data);
+    setTimeout(() => {
+      this.store.delete(key);
+    }, px);
+  }
+
+  async delete(key: string | string[]) {
+    const target = key instanceof Array ? key : [key];
+    target.forEach((x) => {
+      this.store.delete(x);
+    });
   }
 }

@@ -1,8 +1,14 @@
-export interface LinkData {
+export interface LinkFormData {
   webUrl: string;
-  iosUrl?: string;
-  aosUrl?: string;
+  iosUrl: string | null;
+  aosUrl: string | null;
   appOnly: boolean;
-  requestName: string;
-  requestEmail: string;
+  expireDate: number;
+}
+
+export interface LinkData extends LinkFormData {
+  key: string;
+  registerName: string;
+  registerEmail: string;
+  registerDate: number;
 }
