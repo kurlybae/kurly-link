@@ -22,7 +22,6 @@ import { addYears, format, parse } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useRouter } from 'next/router';
 import { KEY_REGEX_SOURCE } from '@/shared/constants/key';
-import { uniq } from '@/shared/utils';
 import { NEXT_PUBLIC_APP_URI_SCHEME } from '@/shared/configs';
 import { getParamsFromUrl, getUrl } from '@/shared/utils/url-helper';
 
