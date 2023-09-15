@@ -20,7 +20,7 @@ import { LinkData, LinkFormData } from '@/types';
 import { addYears, format, parse } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useRouter } from 'next/router';
-import { KEY_REGEX } from '@/constants/key';
+import { KEY_REGEX_SOURCE } from '@/constants/key';
 
 const ModalBox = styled(Paper)`
   position: absolute;
@@ -73,7 +73,7 @@ const DEFAULT_INITIAL_VALUE: FormData = {
   expireDateString: format(addYears(Date.now(), 1), 'yyyy-MM-dd'),
 };
 
-const hashRegex = new RegExp(`#(add|edit)(?:-(${KEY_REGEX.source}))?$`);
+const hashRegex = new RegExp(`#(add|edit)(?:-(${KEY_REGEX_SOURCE}))?$`);
 
 function parsePath(
   asPath: string,

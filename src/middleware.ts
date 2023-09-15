@@ -1,11 +1,21 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
+import { KEY_REGEX_SOURCE } from '@/constants/key';
 
 export default withAuth(
   function middleware(req) {
-    const { pathname } = req.nextUrl;
+    const { nextUrl } = req;
+    const { pathname } = nextUrl;
     if (pathname === '/') {
       return NextResponse.redirect(process.env.FALLBACK_URL || '');
+    }
+    const keyMatch = new RegExp(`(^\/${KEY_REGEX_SOURCE})\/(.+)`).exec(
+      pathname,
+    );
+    if (keyMatch) {
+      nextUrl.pathname = keyMatch[1];
+      nextUrl.searchParams.set('__orgPath', keyMatch[2]);
+      return NextResponse.rewrite(nextUrl);
     }
     return NextResponse.next();
   },

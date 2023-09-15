@@ -5,8 +5,9 @@ import UAParser from 'ua-parser-js';
 import { isRobot } from '@/utils/is-robot';
 import { useEffect, useMemo } from 'react';
 import { isAppWebview } from '@/utils/device';
-import { appendQueryString, getAppOpenLink } from '@/utils/app-link';
+import { getAppOpenLink } from '@/utils/app-link';
 import Head from 'next/head';
+import { setLink } from '@/utils/query-helper';
 
 export default function Link({
   linkData,
@@ -67,6 +68,7 @@ export const getServerSideProps = async ({
   const origin = process.env.VERCEL_URL
     ? `https://${process.env.VERCEL_URL}`
     : process.env.ORIGIN;
+
   const currentHref = origin?.concat(req.url || '') || '';
   const ua = new UAParser(req.headers['user-agent']).getResult();
   const device = {
@@ -74,47 +76,62 @@ export const getServerSideProps = async ({
     isIOS: ua.os.name === 'iOS',
     isWebview: isAppWebview(ua.ua),
   };
-
-  const data = isKey(key) ? (await storage.get(key)) ?? null : null;
-  if (data) {
-    data.webUrl = appendQueryString(data.webUrl, restQuery);
-    data.iosUrl = appendQueryString(data.iosUrl, restQuery);
-    data.aosUrl = appendQueryString(data.aosUrl, restQuery);
-  }
-
-  const destination = data?.webUrl ?? process.env.FALLBACK_URL;
-  // 목적지가 없으면 무조건 404
-  if (!destination) {
-    return { notFound: true };
-  }
-  if (device.isMobile) {
-    if (data && device.isWebview) {
-      return {
-        redirect: {
-          permanent: false,
-          destination:
-            (device.isIOS ? data.iosUrl : data.aosUrl) || data.webUrl,
-        },
-      };
+  try {
+    const data = isKey(key) ? (await storage.get(key)) ?? null : null;
+    if (data) {
+      data.webUrl = setLink(data.webUrl, restQuery);
+      data.iosUrl = setLink(data.iosUrl, restQuery);
+      data.aosUrl = setLink(data.aosUrl, restQuery);
     }
-  } else {
-    // 크롤러 or PC 에 앱전용이 아닌경우, 바로 redirect
-    if (isRobot(ua.ua) || (data && !data.appOnly)) {
-      return {
-        redirect: {
-          permanent: false,
-          destination,
-        },
-      };
-    }
-  }
 
-  return {
-    props: {
-      linkData: data,
-      destination,
-      device,
-      currentHref,
-    },
-  };
+    const destination = data?.webUrl ?? process.env.FALLBACK_URL;
+    // 목적지가 없으면 무조건 404
+    if (!destination) {
+      return { notFound: true };
+    }
+    if (device.isMobile) {
+      if (data && device.isWebview) {
+        return {
+          redirect: {
+            permanent: false,
+            destination:
+              (device.isIOS ? data.iosUrl : data.aosUrl) || data.webUrl,
+          },
+        };
+      }
+    } else {
+      // 크롤러 or PC 에 앱전용이 아닌경우, 바로 redirect
+      if (isRobot(ua.ua) || (data && !data.appOnly)) {
+        return {
+          redirect: {
+            permanent: false,
+            destination,
+          },
+        };
+      }
+    }
+
+    return {
+      props: {
+        linkData: data,
+        destination,
+        device,
+        currentHref,
+      },
+    };
+  } catch (e) {
+    const destination = process.env.FALLBACK_URL;
+    // 목적지가 없으면 무조건 404
+    if (!destination) {
+      return { notFound: true };
+    }
+    return {
+      props: {
+        linkData: null,
+        destination,
+        device,
+        currentHref,
+      },
+    };
+  }
 };

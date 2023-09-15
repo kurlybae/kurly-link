@@ -21,7 +21,7 @@ import { ContentCopy } from '@mui/icons-material';
 import TextLink from '@/utils/TextLink';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { KEY_REGEX } from '@/constants/key';
+import { KEY_REGEX_SOURCE } from '@/constants/key';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 
@@ -33,7 +33,7 @@ const ModalBox = styled(Paper)`
   padding: 10px;
 `;
 
-const hashRegex = new RegExp(`#(${KEY_REGEX.source})$`);
+const hashRegex = new RegExp(`#(${KEY_REGEX_SOURCE})$`);
 
 function parsePath(asPath: string): string | undefined {
   const match = hashRegex.exec(asPath);
