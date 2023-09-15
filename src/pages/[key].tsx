@@ -1,18 +1,21 @@
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next';
-import { isKey } from '@/constants/key';
-import storage from '@/libs/storage';
+import { isKey } from '@/shared/constants/key';
+import storage from '@/shared/libs/storage';
 import UAParser from 'ua-parser-js';
-import { isRobot } from '@/utils/is-robot';
+import { isRobot } from '@/shared/utils/is-robot';
 import { useEffect, useMemo } from 'react';
-import { isAppWebview } from '@/utils/device';
-import { getAppOpenLink } from '@/utils/app-link';
+import { isAppWebview } from '@/shared/utils/device';
+import { getAppOpenLink } from '@/shared/utils/app-link';
 import Head from 'next/head';
-import { setLink } from '@/utils/query-helper';
+import { setLink } from '@/shared/utils/query-helper';
+import { FALLBACK_URL, ORIGIN } from '@/shared/configs';
+import InvalidInputError from '@/shared/libs/errors/InvalidInputError';
 
 export default function Link({
   linkData,
-  destination,
-  device: { isMobile, isIOS, isWebview },
+  message,
+  fallbackUrl,
+  device: { isMobile, isIOS },
   currentHref,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const appLink = useMemo(
@@ -27,8 +30,8 @@ export default function Link({
   const isAppOnly = linkData?.appOnly && appLink;
   useEffect(() => {
     if (!linkData) {
-      alert('유효하지 않은 주소입니다.');
-      location.replace(destination);
+      alert(message);
+      location.replace(fallbackUrl);
       return;
     }
 
@@ -43,7 +46,7 @@ export default function Link({
         location.replace(linkData.webUrl);
       }, 100);
     }
-  }, [appLink, destination, isAppOnly, isMobile, isWebview, linkData]);
+  }, [appLink, fallbackUrl, isAppOnly, isMobile, linkData, message]);
 
   return (
     <>
@@ -65,11 +68,7 @@ export const getServerSideProps = async ({
   req,
   query: { key, ...restQuery },
 }: GetServerSidePropsContext) => {
-  const origin = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.ORIGIN;
-
-  const currentHref = origin?.concat(req.url || '') || '';
+  const currentHref = ORIGIN?.concat(req.url || '') || '';
   const ua = new UAParser(req.headers['user-agent']).getResult();
   const device = {
     isMobile: ua.device.type === 'mobile',
@@ -78,19 +77,16 @@ export const getServerSideProps = async ({
   };
   try {
     const data = isKey(key) ? (await storage.get(key)) ?? null : null;
-    if (data) {
-      data.webUrl = setLink(data.webUrl, restQuery);
-      data.iosUrl = setLink(data.iosUrl, restQuery);
-      data.aosUrl = setLink(data.aosUrl, restQuery);
+    if (!data) {
+      throw new InvalidInputError();
     }
 
-    const destination = data?.webUrl ?? process.env.FALLBACK_URL;
-    // 목적지가 없으면 무조건 404
-    if (!destination) {
-      return { notFound: true };
-    }
+    data.webUrl = setLink(data.webUrl, restQuery);
+    data.iosUrl = setLink(data.iosUrl, restQuery);
+    data.aosUrl = setLink(data.aosUrl, restQuery);
+
     if (device.isMobile) {
-      if (data && device.isWebview) {
+      if (device.isWebview) {
         return {
           redirect: {
             permanent: false,
@@ -105,7 +101,7 @@ export const getServerSideProps = async ({
         return {
           redirect: {
             permanent: false,
-            destination,
+            destination: data.webUrl,
           },
         };
       }
@@ -114,21 +110,28 @@ export const getServerSideProps = async ({
     return {
       props: {
         linkData: data,
-        destination,
         device,
         currentHref,
       },
     };
   } catch (e) {
-    const destination = process.env.FALLBACK_URL;
-    // 목적지가 없으면 무조건 404
-    if (!destination) {
-      return { notFound: true };
+    // 크롤러는 바로 fallback redirect
+    if (!device.isMobile && isRobot(ua.ua)) {
+      return {
+        redirect: {
+          permanent: false,
+          destination: FALLBACK_URL,
+        },
+      };
     }
     return {
       props: {
         linkData: null,
-        destination,
+        message:
+          e instanceof InvalidInputError
+            ? '유효하지 않은 주소입니다.'
+            : '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+        fallbackUrl: FALLBACK_URL,
         device,
         currentHref,
       },

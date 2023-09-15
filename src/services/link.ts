@@ -1,8 +1,8 @@
 import { Session } from 'next-auth';
 import { LinkData, LinkFormData } from '@/types';
-import storage from '@/libs/storage';
-import InvalidInputError from '@/libs/errors/InvalidInputError';
-import AuthError from '@/libs/errors/AuthError';
+import storage from '@/shared/libs/storage';
+import InvalidInputError from '@/shared/libs/errors/InvalidInputError';
+import AuthError from '@/shared/libs/errors/AuthError';
 
 function validateForm(form: LinkFormData) {
   if (!form.webUrl) {

@@ -1,5 +1,7 @@
-const appRegex = process.env.NEXT_PUBLIC_APP_UA_REGEX
-  ? new RegExp(process.env.NEXT_PUBLIC_APP_UA_REGEX)
+import { NEXT_PUBLIC_APP_UA_REGEX } from '@/shared/configs';
+
+const appRegex = NEXT_PUBLIC_APP_UA_REGEX
+  ? new RegExp(NEXT_PUBLIC_APP_UA_REGEX)
   : undefined;
 
 export function isAppWebview(useragent?: string): boolean {

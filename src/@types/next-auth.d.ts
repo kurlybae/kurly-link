@@ -4,8 +4,6 @@ type Role = 'user' | 'admin';
 
 interface ExUser {
   role: Role[];
-  firstName: string;
-  lastName: string;
 }
 
 declare module 'next-auth' {

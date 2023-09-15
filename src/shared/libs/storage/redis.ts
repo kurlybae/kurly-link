@@ -1,8 +1,8 @@
 import { createClient, RedisClientType } from 'redis';
 import { LinkData } from '@/types';
 import { Storage } from './index';
-import { tryParseJson } from '@/utils/json-parser';
-import { isDefined } from '@/utils/type-helper';
+import { tryParseJson } from '@/shared/utils/json-parser';
+import { isDefined } from '@/shared/utils/type-helper';
 
 const APP_KEY = 'links:';
 

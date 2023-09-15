@@ -1,13 +1,14 @@
 import { withAuth } from 'next-auth/middleware';
 import { NextResponse } from 'next/server';
-import { KEY_REGEX_SOURCE } from '@/constants/key';
+import { KEY_REGEX_SOURCE } from '@/shared/constants/key';
+import { FALLBACK_URL } from '@/shared/configs';
 
 export default withAuth(
   function middleware(req) {
     const { nextUrl } = req;
     const { pathname } = nextUrl;
     if (pathname === '/') {
-      return NextResponse.redirect(process.env.FALLBACK_URL || '');
+      return NextResponse.redirect(FALLBACK_URL);
     }
     const keyMatch = new RegExp(`(^\/${KEY_REGEX_SOURCE})\/(.+)`).exec(
       pathname,

@@ -20,7 +20,7 @@ import { LinkData, LinkFormData } from '@/types';
 import { addYears, format, parse } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useRouter } from 'next/router';
-import { KEY_REGEX_SOURCE } from '@/constants/key';
+import { KEY_REGEX_SOURCE } from '@/shared/constants/key';
 
 const ModalBox = styled(Paper)`
   position: absolute;

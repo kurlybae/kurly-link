@@ -1,15 +1,15 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import storage from '@/libs/storage';
+import storage from '@/shared/libs/storage';
 import { LinkFormData } from '@/types';
-import { KEY_LENGTH } from '@/constants/key';
+import { KEY_LENGTH } from '@/shared/constants/key';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
-import InvalidInputError from '@/libs/errors/InvalidInputError';
-import AuthError from '@/libs/errors/AuthError';
-import PermissionError from '@/libs/errors/PermissionError';
+import InvalidInputError from '@/shared/libs/errors/InvalidInputError';
+import AuthError from '@/shared/libs/errors/AuthError';
+import PermissionError from '@/shared/libs/errors/PermissionError';
 import { addLink } from '@/services/link';
 import { createHash } from 'crypto';
-import DuplicatedError from '@/libs/errors/DuplicatedError';
+import DuplicatedError from '@/shared/libs/errors/DuplicatedError';
 
 // const genKey = customAlphabet(KEY_BASE);
 

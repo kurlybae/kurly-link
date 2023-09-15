@@ -1,6 +1,6 @@
 import { ParsedUrlQuery } from 'querystring';
-import InvalidInputError from '@/libs/errors/InvalidInputError';
-import { uniq } from '@/utils';
+import InvalidInputError from '@/shared/libs/errors/InvalidInputError';
+import { uniq } from '@/shared/utils/index';
 
 function replaceParams(
   base: string,

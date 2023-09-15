@@ -18,10 +18,10 @@ import { useQuery } from 'react-query';
 import axios from 'axios';
 import { useRouter } from 'next/router';
 import { ContentCopy } from '@mui/icons-material';
-import TextLink from '@/utils/TextLink';
+import TextLink from '@/shared/utils/TextLink';
 import { format } from 'date-fns';
 import { ko } from 'date-fns/locale';
-import { KEY_REGEX_SOURCE } from '@/constants/key';
+import { KEY_REGEX_SOURCE } from '@/shared/constants/key';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 

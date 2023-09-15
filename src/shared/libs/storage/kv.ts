@@ -1,6 +1,6 @@
 import { kv } from '@vercel/kv';
 import { LinkData } from '@/types';
-import { Storage } from '@/libs/storage/index';
+import { Storage } from '@/shared/libs/storage/index';
 
 const APP_KEY = 'links:';
 

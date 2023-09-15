@@ -1,14 +1,14 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import storage from '@/libs/storage';
+import storage from '@/shared/libs/storage';
 import { LinkFormData } from '@/types';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
 import { addLink } from '@/services/link';
-import InvalidInputError from '@/libs/errors/InvalidInputError';
-import AuthError from '@/libs/errors/AuthError';
-import PermissionError from '@/libs/errors/PermissionError';
-import { isKey } from '@/constants/key';
-import DuplicatedError from '@/libs/errors/DuplicatedError';
+import InvalidInputError from '@/shared/libs/errors/InvalidInputError';
+import AuthError from '@/shared/libs/errors/AuthError';
+import PermissionError from '@/shared/libs/errors/PermissionError';
+import { isKey } from '@/shared/constants/key';
+import DuplicatedError from '@/shared/libs/errors/DuplicatedError';
 
 export default async function link(req: NextApiRequest, res: NextApiResponse) {
   try {

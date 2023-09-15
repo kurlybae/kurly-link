@@ -1,9 +1,9 @@
 import Head from 'next/head';
-import Setting from '@/components/Setting';
+import Setting from '@/components/Setting/Setting';
 import { SessionProvider } from 'next-auth/react';
 import { createTheme, ThemeProvider } from '@mui/material';
 import { QueryClient, QueryClientProvider } from 'react-query';
-import AppBar from '@/components/AppBar';
+import AppBar from '@/shared/components/AppBar';
 
 const theme = createTheme();
 
