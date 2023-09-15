@@ -1,5 +1,5 @@
 import { Formik } from 'formik';
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import {
   Box,
@@ -14,6 +14,7 @@ import {
   Stack,
   styled,
   Switch,
+  Typography,
 } from '@mui/material';
 import { useQuery, useQueryClient } from 'react-query';
 import { LinkData, LinkFormData } from '@/types';
@@ -21,6 +22,9 @@ import { addYears, format, parse } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useRouter } from 'next/router';
 import { KEY_REGEX_SOURCE } from '@/shared/constants/key';
+import { uniq } from '@/shared/utils';
+import { NEXT_PUBLIC_APP_URI_SCHEME } from '@/shared/configs';
+import { getParamsFromUrl, getUrl } from '@/shared/utils/url-helper';
 
 const ModalBox = styled(Paper)`
   position: absolute;
@@ -43,15 +47,23 @@ const fieldTitles: Record<keyof FormData, string> = {
   appOnly: '앱 전용',
   expireDateString: '만료일(한국시간)',
 };
+const placeHolders: Partial<Record<keyof FormData, string | undefined>> = {
+  webUrl: 'https://',
+  iosUrl: NEXT_PUBLIC_APP_URI_SCHEME,
+  aosUrl: NEXT_PUBLIC_APP_URI_SCHEME,
+};
 
-function checkUrl(url: string, isRequired = false) {
-  if (url) {
-    if (/https?:\/\//.test(url)) {
-      return;
+function getEncodingError(url: string) {
+  const first = url.indexOf('?');
+  if (first >= 0) {
+    const back = url.slice(first + 1);
+    const query = back.split('&').find((row) => {
+      const sanitized = row.replace('=', '').replace(/[$%]/g, '');
+      return encodeURIComponent(sanitized) !== sanitized;
+    });
+    if (query) {
+      return `인코딩 필요 (${query})`;
     }
-    return '포맷 확인 필요';
-  } else if (isRequired) {
-    return '필수입니다';
   }
 }
 
@@ -90,11 +102,12 @@ function parsePath(
 export default function LinkForm({
   onSubmitComplete,
 }: {
-  onSubmitComplete: (key: string, isEdit: boolean) => void;
+  onSubmitComplete: (key: string, isEdit: boolean, webUrl: string) => void;
 }) {
   const router = useRouter();
   const command = useMemo(() => parsePath(router.asPath), [router.asPath]);
   const queryClient = useQueryClient();
+  const [sample, setSample] = useState<string>();
 
   const { data } = useQuery(
     `links/${command?.key}`,
@@ -162,7 +175,7 @@ export default function LinkForm({
               .post<{ key: string }>('/api/admin/links', request)
               .then((x) => x.data.key);
         void queryClient.invalidateQueries('links');
-        onSubmitComplete(result, !!data);
+        onSubmitComplete(result, !!data, request.webUrl);
       } catch (e) {
         if (e instanceof AxiosError) {
           if (e.response && e.response.status === 409) {
@@ -182,19 +195,74 @@ export default function LinkForm({
     },
     [data, onClose, onSubmitComplete, queryClient, router],
   );
-  const validate = useCallback(({ webUrl, expireDateString }: FormData) => {
-    const error: Partial<FormData> = {};
-    error.webUrl = checkUrl(webUrl, true);
-    error.expireDateString = checkDate(expireDateString);
-    Object.keys(error).forEach((key) => {
-      const typedKey = key as keyof FormData;
-      if (!error[typedKey]) {
-        delete error[typedKey];
+  const validate = useCallback(
+    ({ webUrl, iosUrl, aosUrl, expireDateString }: FormData) => {
+      const error: Partial<FormData> = {};
+      if (!webUrl) {
+        error.webUrl = '필수 입력';
+      } else {
+        if (!/^https?:\/\//.test(webUrl)) {
+          error.webUrl = '링크 형식을 바르게 입력해주세요';
+        } else {
+          error.webUrl = getEncodingError(webUrl);
+          const { params, numberParams } = getParamsFromUrl(webUrl);
+          if (!error.webUrl) {
+            if (
+              numberParams.length > 0 &&
+              Math.max(...numberParams) !== numberParams.length
+            ) {
+              error.webUrl = 'Path 변수는 순차적으로만 사용 가능합니다';
+            }
+          }
+          [iosUrl, aosUrl].forEach((url, idx) => {
+            const key: keyof FormData = idx === 0 ? 'iosUrl' : 'aosUrl';
+            if (url) {
+              error[key] = getEncodingError(url);
+              if (!error[key]) {
+                if (
+                  !NEXT_PUBLIC_APP_URI_SCHEME ||
+                  url.startsWith(NEXT_PUBLIC_APP_URI_SCHEME)
+                ) {
+                  if (
+                    !params.every((x) =>
+                      new RegExp(`(\\$${x})(?=\\b)`).test(url),
+                    )
+                  ) {
+                    error[key] =
+                      fieldTitles.webUrl + '와 동일한 변수를 사용해야합니다.';
+                  } else if (getEncodingError(url)) {
+                    error[key] =
+                      '인코딩 되지 않은 쿼리항목이 있습니다. 확인해주세요';
+                  }
+                } else {
+                  error[key] = '링크 형식을 바르게 입력해주세요';
+                }
+              }
+            }
+          });
+        }
       }
-    });
 
-    return error;
-  }, []);
+      error.expireDateString = checkDate(expireDateString);
+      Object.keys(error).forEach((key) => {
+        const typedKey = key as keyof FormData;
+        if (!error[typedKey]) {
+          delete error[typedKey];
+        }
+      });
+
+      if (!error.webUrl) {
+        if (/\$(\w+)\b/.test(webUrl)) {
+          setSample(getUrl('XXXXXXXX', webUrl, true));
+        } else {
+          setSample(undefined);
+        }
+      }
+
+      return error;
+    },
+    [],
+  );
 
   return (
     <Modal
@@ -206,6 +274,12 @@ export default function LinkForm({
       <ModalBox>
         <Container>
           <h2>{data ? `${data.key}` : '등록'}</h2>
+          {sample && (
+            <h5>
+              예상 URL
+              <Typography fontFamily="monospace">{sample}</Typography>
+            </h5>
+          )}
           <Formik<FormData>
             initialValues={initialValues}
             onSubmit={onSubmit}
@@ -237,6 +311,7 @@ export default function LinkForm({
                         onChange={handleChange}
                         onBlur={handleBlur}
                         value={values[key]}
+                        placeholder={placeHolders[key]}
                       />
                       {errors[key] && (
                         <FormHelperText id={`component-text-${key}`}>

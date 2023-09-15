@@ -19,7 +19,7 @@ export default function LinkDataTable({
   selectKeys,
 }: {
   deleteLink: (link: LinkData) => React.MouseEventHandler;
-  copyLink: (key: string) => React.MouseEventHandler;
+  copyLink: (key: string, webUrl: string) => React.MouseEventHandler;
   selectKeys: (key: string[]) => void;
 }) {
   const { data } = useQuery(
@@ -48,7 +48,7 @@ export default function LinkDataTable({
         headerName: 'URL',
         sortable: false,
         width: 130,
-        renderCell: ({ row: { key } }) => (
+        renderCell: ({ row: { key, webUrl } }) => (
           <>
             <Link
               href={{ hash: key }}
@@ -58,7 +58,7 @@ export default function LinkDataTable({
             >
               {key}
             </Link>
-            <IconButton size="small" onClick={copyLink(key)}>
+            <IconButton size="small" onClick={copyLink(key, webUrl)}>
               <ContentCopy fontSize="inherit" />
             </IconButton>
           </>

@@ -10,11 +10,13 @@ import { format } from 'date-fns';
 import Link from 'next/link';
 import Detail from '@/components/Setting/Detail';
 import LinkDataTable from '@/components/Setting/LinkDataTable';
+import { getUrl } from '@/shared/utils/url-helper';
 
 export default function Setting() {
   const [lastAdded, setLastAdded] = useState<{
     key: string;
     isEdit: boolean;
+    webUrl: string;
   }>();
   const [alertMessage, snackAlert] = useState<string>();
 
@@ -53,19 +55,25 @@ export default function Setting() {
   );
 
   const copyLink = useCallback(
-    (key: string) => (e: React.MouseEvent<HTMLButtonElement>) => {
-      e.stopPropagation();
-      const link = `${location.origin}/${key}`;
-      const result = copy(link);
-      setLastAdded(undefined);
-      snackAlert(result ? `복사되었습니다.\n${link}` : '복사에 실패하였습니다');
-    },
+    (key: string, webUrl: string) =>
+      (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation();
+        const link = getUrl(key, webUrl);
+        const result = copy(link);
+        setLastAdded(undefined);
+        snackAlert(
+          result ? `복사되었습니다.\n${link}` : '복사에 실패하였습니다',
+        );
+      },
     [],
   );
 
-  const onSubmitComplete = useCallback((key: string, isEdit: boolean) => {
-    setLastAdded({ key, isEdit });
-  }, []);
+  const onSubmitComplete = useCallback(
+    (key: string, isEdit: boolean, webUrl: string) => {
+      setLastAdded({ key, isEdit, webUrl });
+    },
+    [],
+  );
 
   return (
     <Container sx={{ pt: 3 }}>
@@ -85,7 +93,10 @@ export default function Setting() {
         action={
           lastAdded ? (
             <React.Fragment>
-              <Button size="small" onClick={copyLink(lastAdded?.key)}>
+              <Button
+                size="small"
+                onClick={copyLink(lastAdded.key, lastAdded.webUrl)}
+              >
                 복사
               </Button>
               <IconButton

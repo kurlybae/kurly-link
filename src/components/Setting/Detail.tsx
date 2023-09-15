@@ -24,6 +24,7 @@ import { ko } from 'date-fns/locale';
 import { KEY_REGEX_SOURCE } from '@/shared/constants/key';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
+import { getUrl } from '@/shared/utils/url-helper';
 
 const ModalBox = styled(Paper)`
   position: absolute;
@@ -45,7 +46,7 @@ function parsePath(asPath: string): string | undefined {
 export default function Detail({
   copyLink,
 }: {
-  copyLink: (key: string) => React.MouseEventHandler;
+  copyLink: (key: string, webUrl: string) => React.MouseEventHandler;
 }) {
   const router = useRouter();
   const key = useMemo(() => parsePath(router.asPath), [router.asPath]);
@@ -65,9 +66,8 @@ export default function Detail({
     session?.user.email === data?.registerEmail;
 
   const url = useMemo(
-    () =>
-      typeof location !== 'undefined' ? `${location.origin}/${key}` : `/${key}`,
-    [key],
+    () => key && data && getUrl(key, data.webUrl),
+    [data, key],
   );
 
   const onClose = useCallback(() => {
@@ -102,7 +102,10 @@ export default function Detail({
                       </TextLink>
                     </TableCell>
                     <TableCell>
-                      <IconButton size="small" onClick={copyLink(data.key)}>
+                      <IconButton
+                        size="small"
+                        onClick={copyLink(data.key, data.webUrl)}
+                      >
                         <ContentCopy fontSize="inherit" />
                       </IconButton>
                     </TableCell>

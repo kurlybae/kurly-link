@@ -5,9 +5,8 @@ import UAParser from 'ua-parser-js';
 import { isRobot } from '@/shared/utils/is-robot';
 import { useEffect, useMemo } from 'react';
 import { isAppWebview } from '@/shared/utils/device';
-import { getAppOpenLink } from '@/shared/utils/app-link';
 import Head from 'next/head';
-import { setLink } from '@/shared/utils/query-helper';
+import { getAppOpenLink, setLink } from '@/shared/utils/url-helper';
 import { FALLBACK_URL, ORIGIN } from '@/shared/configs';
 import InvalidInputError from '@/shared/libs/errors/InvalidInputError';
 
@@ -31,7 +30,9 @@ export default function Link({
   useEffect(() => {
     if (!linkData) {
       alert(message);
-      location.replace(fallbackUrl);
+      if (fallbackUrl) {
+        location.replace(fallbackUrl);
+      }
       return;
     }
 
