@@ -31,6 +31,9 @@ function replaceParams(
   if (params.length > 0) {
     const pathParams =
       typeof __orgPath === 'string' ? __orgPath.split('/') : [];
+    if (pathParams.some((x) => /^\$\d+/.test(x))) {
+      throw new InvalidInputError();
+    }
     const result = params.reduce((res, key) => {
       const typedKey = /^\d+$/.test(key) ? Number(key) : key;
       if (typeof typedKey === 'number') {
@@ -41,7 +44,7 @@ function replaceParams(
         return res.replace(new RegExp(`(\\$${typedKey})(?=\\b)`, 'g'), param);
       } else {
         const param = restQuery[typedKey];
-        if (typeof param !== 'string') {
+        if (typeof param !== 'string' || param === `$${typedKey}`) {
           throw new InvalidInputError();
         }
         delete restQuery[typedKey];
