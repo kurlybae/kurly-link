@@ -4,17 +4,31 @@ import storage from '@/shared/libs/storage';
 import UAParser from 'ua-parser-js';
 import { isRobot } from '@/shared/utils/is-robot';
 import { useEffect, useMemo } from 'react';
-import { isAppWebview } from '@/shared/utils/device';
+import { isAppWebview, isUriSchemeSafeBrowser } from '@/shared/utils/device';
 import Head from 'next/head';
 import { getAppOpenLink, setLink } from '@/shared/utils/url-helper';
 import { FALLBACK_URL, ORIGIN } from '@/shared/configs';
 import InvalidInputError from '@/shared/libs/errors/InvalidInputError';
+import { AppCallType } from '@/types';
+
+export function shouldCallAppOnload(
+  appCallType: AppCallType,
+  isSafeBrowser: boolean,
+): boolean {
+  if (appCallType === 'always') {
+    return true;
+  } else if (appCallType === 'safe_only') {
+    return isSafeBrowser;
+  }
+
+  return false;
+}
 
 export default function Link({
   linkData,
   message,
   fallbackUrl,
-  device: { isMobile, isIOS },
+  device: { isMobile, isIOS, isSafeBrowser },
   currentHref,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const appLink = useMemo(
@@ -37,7 +51,7 @@ export default function Link({
     }
 
     if (isMobile) {
-      if (appLink) {
+      if (appLink && shouldCallAppOnload(linkData.appCall, isSafeBrowser)) {
         location.replace(appLink);
       }
     }
@@ -47,7 +61,15 @@ export default function Link({
         location.replace(linkData.webUrl);
       }, 100);
     }
-  }, [appLink, fallbackUrl, isAppOnly, isMobile, linkData, message]);
+  }, [
+    appLink,
+    fallbackUrl,
+    isAppOnly,
+    isMobile,
+    isSafeBrowser,
+    linkData,
+    message,
+  ]);
 
   return (
     <>
@@ -75,6 +97,7 @@ export const getServerSideProps = async ({
     isMobile: ua.device.type === 'mobile',
     isIOS: ua.os.name === 'iOS',
     isWebview: isAppWebview(ua.ua),
+    isSafeBrowser: isUriSchemeSafeBrowser(ua),
   };
   try {
     const data = isKey(key) ? (await storage.get(key)) ?? null : null;

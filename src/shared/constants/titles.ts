@@ -7,6 +7,6 @@ export const BridgeTypeTitle: Record<BridgeType, string> = {
 };
 export const AppCallTypeTitle: Record<AppCallType, string> = {
   none: '없음',
-  safe_only: '안전한 경우',
+  safe_only: '안전모드',
   always: '항상',
 };

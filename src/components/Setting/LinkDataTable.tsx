@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { LinkData } from '@/types';
 import axios from 'axios';
-import { IconButton } from '@mui/material';
+import { Chip, IconButton } from '@mui/material';
 import { useQuery } from 'react-query';
 import { ContentCopy, Delete, Edit } from '@mui/icons-material';
 import { format } from 'date-fns';
@@ -76,10 +76,18 @@ export default function LinkDataTable({
       {
         field: 'bridgeType',
         headerName: '타입',
-        width: 70,
+        width: 100,
         align: 'center',
         headerAlign: 'center',
         valueGetter: ({ row: { bridgeType } }) => BridgeTypeTitle[bridgeType],
+        renderCell: ({ row: { bridgeType } }) => (
+          <Chip
+            size="small"
+            label={BridgeTypeTitle[bridgeType]}
+            color={bridgeType !== 'normal' ? 'primary' : 'default'}
+            variant="outlined"
+          />
+        ),
       },
       {
         field: 'appCall',
@@ -88,6 +96,14 @@ export default function LinkDataTable({
         align: 'center',
         headerAlign: 'center',
         valueGetter: ({ row: { appCall } }) => AppCallTypeTitle[appCall],
+        renderCell: ({ row: { appCall } }) => (
+          <Chip
+            size="small"
+            label={AppCallTypeTitle[appCall]}
+            color={appCall !== 'none' ? 'primary' : 'default'}
+            variant="outlined"
+          />
+        ),
       },
       {
         field: 'registerName',

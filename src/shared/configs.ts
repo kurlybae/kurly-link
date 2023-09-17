@@ -29,3 +29,6 @@ export const NEXT_PUBLIC_APP_OPEN_URI_SCHEME =
 export const ORIGIN = process.env.VERCEL_URL
   ? `https://${process.env.VERCEL_URL}`
   : process.env.ORIGIN;
+
+export const IOS_URI_SCHEME_SAFE_USER_AGENT_REGEX =
+  /Chrome|NAVER|KAKAOTALK|Line|Instagram|Edge|GSA/i;
