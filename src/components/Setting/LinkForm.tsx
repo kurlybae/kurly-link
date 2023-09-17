@@ -3,20 +3,23 @@ import React, { useCallback, useMemo, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import {
   Button,
-  Container,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   FormControlLabel as OrgFormControlLabel,
   FormHelperText,
   FormLabel,
   Input,
   InputLabel,
-  Modal,
-  Paper,
   Radio,
   RadioGroup,
   Stack,
   styled,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { useQuery, useQueryClient } from 'react-query';
 import { AppCallType, BridgeType, LinkData, LinkFormData } from '@/types';
@@ -29,14 +32,6 @@ import { getParamsFromUrl, getUrl } from '@/shared/utils/url-helper';
 import { FormControlLabelProps } from '@mui/material/FormControlLabel/FormControlLabel';
 import { AppCallTypeTitle, BridgeTypeTitle } from '@/shared/constants/titles';
 
-const ModalBox = styled(Paper)`
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 500px;
-  padding: 10px;
-`;
 const RadioFormControl = styled(FormControl)`
   display: flex;
   flex-direction: row;
@@ -108,9 +103,10 @@ function parsePath(
 ): { type: 'add' | 'edit'; key?: string } | undefined {
   const match = hashRegex.exec(asPath);
   if (match) {
+    const type = match[1] as 'add' | 'edit';
     return {
-      type: match[1] as 'add' | 'edit',
-      key: match[2],
+      type,
+      key: type === 'edit' ? match[2] : undefined,
     };
   }
 }
@@ -128,6 +124,8 @@ export default function LinkForm({
   const command = useMemo(() => parsePath(router.asPath), [router.asPath]);
   const queryClient = useQueryClient();
   const [sample, setSample] = useState<string>();
+  const theme = useTheme();
+  const fullScreen = useMediaQuery(theme.breakpoints.down('md'));
 
   const { data } = useQuery(
     `links/${command?.key}`,
@@ -253,13 +251,13 @@ export default function LinkForm({
                   !NEXT_PUBLIC_APP_URI_SCHEME ||
                   url.startsWith(NEXT_PUBLIC_APP_URI_SCHEME)
                 ) {
-                  if (
-                    !params.every((x) =>
-                      new RegExp(`(\\$${x})(?=\\b)`).test(url),
-                    )
-                  ) {
+                  const currentParams = getParamsFromUrl(url);
+                  if (!currentParams.params.every((x) => params.includes(x))) {
                     error[key] =
-                      fieldTitles.webUrl + '와 동일한 변수를 사용해야합니다.';
+                      fieldTitles.webUrl +
+                      `에 있는 변수(${params
+                        .map((x) => `$${x}`)
+                        .join(',')})만 사용할 수 있습니다.`;
                   } else if (getEncodingError(url)) {
                     error[key] =
                       '인코딩 되지 않은 쿼리항목이 있습니다. 확인해주세요';
@@ -283,7 +281,7 @@ export default function LinkForm({
 
       if (!error.webUrl) {
         if (/\$(\w+)\b/.test(webUrl)) {
-          setSample(getUrl('XXXXXXXX', webUrl, true));
+          setSample(getUrl('OOOOOOOO', webUrl));
         } else {
           setSample(undefined);
         }
@@ -295,151 +293,159 @@ export default function LinkForm({
   );
 
   return (
-    <Modal
+    <Dialog
+      fullScreen={fullScreen}
+      fullWidth
       open={!!(command && (command.type === 'add' || data))}
       onClose={onClose}
-      aria-labelledby="modal-modal-title"
-      aria-describedby="modal-modal-description"
+      aria-labelledby="link-form-dialog-title"
     >
-      <ModalBox>
-        <Container>
-          <h2>{data ? `${data.key}` : '등록'}</h2>
-          {sample && (
-            <h5>
-              예상 URL
-              <Typography fontFamily="monospace">{sample}</Typography>
-            </h5>
-          )}
-          <Formik<FormData>
-            initialValues={initialValues}
-            onSubmit={onSubmit}
-            validate={validate}
+      <DialogTitle id="link-form-dialog-title">
+        {data?.key || '등록'}
+        {sample && (
+          <Typography
+            fontSize="small"
+            fontFamily="monospace"
+            sx={{ mb: '-18px' }}
           >
-            {({
-              values,
-              errors,
-              handleChange,
-              handleBlur,
-              handleSubmit,
-              isSubmitting,
-              /* and other goodies */
-            }) => (
-              <form onSubmit={handleSubmit}>
-                <Stack gap={1} pb={2}>
-                  {stringFields.map((key) => (
-                    <FormControl
-                      key={key}
-                      error={!!errors[key]}
-                      variant="standard"
-                    >
-                      <InputLabel htmlFor={key}>{fieldTitles[key]}</InputLabel>
-                      <Input
-                        type="text"
-                        id={key}
-                        name={key}
-                        aria-describedby={`component-text-${key}`}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        value={values[key]}
-                        placeholder={placeHolders[key]}
-                      />
-                      {errors[key] && (
-                        <FormHelperText id={`component-text-${key}`}>
-                          {errors[key]}
-                        </FormHelperText>
-                      )}
-                    </FormControl>
-                  ))}
-                  <RadioFormControl>
-                    <FormLabel id="bridgeType-label" sx={{ mr: 2 }}>
-                      {fieldTitles.bridgeType}
-                    </FormLabel>
-                    <RadioGroup
-                      row
-                      aria-labelledby="bridgeType-label"
-                      name="bridgeType"
-                      onChange={handleChange}
-                      value={values.bridgeType}
-                    >
-                      <FormControlLabel<BridgeType>
-                        value="normal"
-                        control={<Radio />}
-                        label={BridgeTypeTitle.normal}
-                      />
-                      <FormControlLabel<BridgeType>
-                        value="app_only"
-                        control={<Radio />}
-                        label={BridgeTypeTitle.app_only}
-                      />
-                      <FormControlLabel<BridgeType>
-                        value="app_nudge"
-                        control={<Radio />}
-                        label={BridgeTypeTitle.app_nudge}
-                        disabled
-                      />
-                    </RadioGroup>
-                  </RadioFormControl>
-                  <RadioFormControl>
-                    <FormLabel id="appCall-label" sx={{ mr: 2 }}>
-                      {fieldTitles.appCall}
-                    </FormLabel>
-                    <RadioGroup
-                      row
-                      aria-labelledby="appCall-label"
-                      name="appCall"
-                      onChange={handleChange}
-                      value={values.appCall}
-                    >
-                      <FormControlLabel<AppCallType>
-                        value="safe_only"
-                        control={<Radio />}
-                        label={AppCallTypeTitle.safe_only}
-                      />
-                      <FormControlLabel<AppCallType>
-                        value="always"
-                        control={<Radio />}
-                        label={AppCallTypeTitle.always}
-                      />
-                      <FormControlLabel<AppCallType>
-                        value="none"
-                        control={<Radio />}
-                        label={AppCallTypeTitle.none}
-                      />
-                    </RadioGroup>
-                  </RadioFormControl>
+            예상 URL : {sample}
+          </Typography>
+        )}
+      </DialogTitle>
+
+      <Formik<FormData>
+        initialValues={initialValues}
+        onSubmit={onSubmit}
+        validate={validate}
+      >
+        {({
+          values,
+          errors,
+          handleChange,
+          handleBlur,
+          handleSubmit,
+          isSubmitting,
+          /* and other goodies */
+        }) => (
+          <form onSubmit={handleSubmit}>
+            <DialogContent>
+              <Stack gap={1} pb={2}>
+                {stringFields.map((key) => (
                   <FormControl
-                    error={!!errors.expireDateString}
+                    key={key}
+                    error={!!errors[key]}
                     variant="standard"
                   >
-                    <InputLabel htmlFor="expireDateString">
-                      {fieldTitles.expireDateString}
-                    </InputLabel>
+                    <InputLabel htmlFor={key}>{fieldTitles[key]}</InputLabel>
                     <Input
-                      type="date"
-                      id="expireDateString"
-                      name="expireDateString"
-                      aria-describedby="component-text-expireDateString"
+                      type="text"
+                      id={key}
+                      name={key}
+                      aria-describedby={`component-text-${key}`}
                       onChange={handleChange}
                       onBlur={handleBlur}
-                      value={values.expireDateString}
+                      value={values[key]}
+                      placeholder={placeHolders[key]}
                     />
-                    {errors.expireDateString && (
-                      <FormHelperText id={`component-text-expireDateString`}>
-                        {errors.expireDateString}
+                    {errors[key] && (
+                      <FormHelperText id={`component-text-${key}`}>
+                        {errors[key]}
                       </FormHelperText>
                     )}
                   </FormControl>
-                  <FormControl>
-                    <Button type="submit" disabled={isSubmitting}>
-                      {data ? '수정' : '등록'}
-                    </Button>
-                  </FormControl>
-                </Stack>
-              </form>
-            )}
-          </Formik>
-        </Container>
-      </ModalBox>
-    </Modal>
+                ))}
+                <RadioFormControl>
+                  <FormLabel id="bridgeType-label" sx={{ mr: 2 }}>
+                    {fieldTitles.bridgeType}
+                  </FormLabel>
+                  <RadioGroup
+                    row
+                    aria-labelledby="bridgeType-label"
+                    name="bridgeType"
+                    onChange={handleChange}
+                    value={values.bridgeType}
+                  >
+                    <FormControlLabel<BridgeType>
+                      value="normal"
+                      control={<Radio />}
+                      label={BridgeTypeTitle.normal}
+                    />
+                    <FormControlLabel<BridgeType>
+                      value="app_only"
+                      control={<Radio />}
+                      label={BridgeTypeTitle.app_only}
+                    />
+                    <FormControlLabel<BridgeType>
+                      value="app_nudge"
+                      control={<Radio />}
+                      label={BridgeTypeTitle.app_nudge}
+                      disabled
+                    />
+                  </RadioGroup>
+                </RadioFormControl>
+                <RadioFormControl>
+                  <FormLabel id="appCall-label" sx={{ mr: 2 }}>
+                    {fieldTitles.appCall}
+                  </FormLabel>
+                  <RadioGroup
+                    row
+                    aria-labelledby="appCall-label"
+                    name="appCall"
+                    onChange={handleChange}
+                    value={values.appCall}
+                  >
+                    <FormControlLabel<AppCallType>
+                      value="safe_only"
+                      control={<Radio />}
+                      label={AppCallTypeTitle.safe_only}
+                    />
+                    <FormControlLabel<AppCallType>
+                      value="always"
+                      control={<Radio />}
+                      label={AppCallTypeTitle.always}
+                    />
+                    <FormControlLabel<AppCallType>
+                      value="none"
+                      control={<Radio />}
+                      label={AppCallTypeTitle.none}
+                    />
+                  </RadioGroup>
+                </RadioFormControl>
+                <FormControl
+                  error={!!errors.expireDateString}
+                  variant="standard"
+                >
+                  <InputLabel htmlFor="expireDateString">
+                    {fieldTitles.expireDateString}
+                  </InputLabel>
+                  <Input
+                    type="date"
+                    id="expireDateString"
+                    name="expireDateString"
+                    aria-describedby="component-text-expireDateString"
+                    onChange={handleChange}
+                    onBlur={handleBlur}
+                    value={values.expireDateString}
+                  />
+                  {errors.expireDateString && (
+                    <FormHelperText id={`component-text-expireDateString`}>
+                      {errors.expireDateString}
+                    </FormHelperText>
+                  )}
+                </FormControl>
+              </Stack>
+            </DialogContent>
+            <DialogActions>
+              <Button autoFocus onClick={onClose}>
+                취소
+              </Button>
+              <Button type="submit" autoFocus disabled={isSubmitting}>
+                {data ? '수정' : '등록'}
+              </Button>
+            </DialogActions>
+          </form>
+        )}
+      </Formik>
+    </Dialog>
   );
 }
