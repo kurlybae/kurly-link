@@ -2,28 +2,32 @@ import { Formik } from 'formik';
 import React, { useCallback, useMemo, useState } from 'react';
 import axios, { AxiosError } from 'axios';
 import {
-  Box,
   Button,
   Container,
   FormControl,
+  FormControlLabel as OrgFormControlLabel,
   FormHelperText,
+  FormLabel,
   Input,
   InputLabel,
   Modal,
   Paper,
+  Radio,
+  RadioGroup,
   Stack,
   styled,
-  Switch,
   Typography,
 } from '@mui/material';
 import { useQuery, useQueryClient } from 'react-query';
-import { LinkData, LinkFormData } from '@/types';
+import { AppCallType, BridgeType, LinkData, LinkFormData } from '@/types';
 import { addYears, format, parse } from 'date-fns';
 import { ko } from 'date-fns/locale';
 import { useRouter } from 'next/router';
 import { KEY_REGEX_SOURCE } from '@/shared/constants/key';
 import { NEXT_PUBLIC_APP_URI_SCHEME } from '@/shared/configs';
 import { getParamsFromUrl, getUrl } from '@/shared/utils/url-helper';
+import { FormControlLabelProps } from '@mui/material/FormControlLabel/FormControlLabel';
+import { AppCallTypeTitle, BridgeTypeTitle } from '@/shared/constants/titles';
 
 const ModalBox = styled(Paper)`
   position: absolute;
@@ -32,6 +36,15 @@ const ModalBox = styled(Paper)`
   transform: translate(-50%, -50%);
   width: 500px;
   padding: 10px;
+`;
+const RadioFormControl = styled(FormControl)`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+
+  label {
+    margin-right: 16px;
+  }
 `;
 
 const stringFields: (keyof Pick<
@@ -43,7 +56,9 @@ const fieldTitles: Record<keyof FormData, string> = {
   webUrl: '웹 링크',
   iosUrl: 'IOS 링크',
   aosUrl: '안드로이드 링크',
-  appOnly: '앱 전용',
+  bridgeType: '타입',
+  bridgeTemplate: '템플릿',
+  appCall: '앱 자동호출',
   expireDateString: '만료일(한국시간)',
 };
 const placeHolders: Partial<Record<keyof FormData, string | undefined>> = {
@@ -80,7 +95,9 @@ const DEFAULT_INITIAL_VALUE: FormData = {
   webUrl: '',
   iosUrl: '',
   aosUrl: '',
-  appOnly: false,
+  bridgeType: 'normal',
+  bridgeTemplate: null,
+  appCall: 'safe_only',
   expireDateString: format(addYears(Date.now(), 1), 'yyyy-MM-dd'),
 };
 
@@ -96,6 +113,10 @@ function parsePath(
       key: match[2],
     };
   }
+}
+
+function FormControlLabel<T>(props: FormControlLabelProps & { value: T }) {
+  return <OrgFormControlLabel {...props} />;
 }
 
 export default function LinkForm({
@@ -126,7 +147,9 @@ export default function LinkForm({
             webUrl: data.webUrl,
             iosUrl: data.iosUrl,
             aosUrl: data.aosUrl,
-            appOnly: data.appOnly,
+            bridgeType: data.bridgeType,
+            bridgeTemplate: data.bridgeTemplate,
+            appCall: data.appCall,
             expireDateString: format(data.expireDate, 'yyyy-MM-dd'),
           }
         : DEFAULT_INITIAL_VALUE,
@@ -138,7 +161,13 @@ export default function LinkForm({
   }, [router]);
 
   const onSubmit = useCallback(
-    async ({ expireDateString, iosUrl, aosUrl, ...restData }: FormData) => {
+    async ({
+      expireDateString,
+      iosUrl,
+      aosUrl,
+      bridgeTemplate,
+      ...restData
+    }: FormData) => {
       const request: LinkFormData = {
         ...restData,
         iosUrl: iosUrl || null,
@@ -146,6 +175,8 @@ export default function LinkForm({
         expireDate: parse(expireDateString, 'yyyy-MM-dd', 0, {
           locale: ko,
         }).valueOf(),
+        bridgeTemplate:
+          restData.bridgeType === 'app_only' ? bridgeTemplate : null,
       };
 
       if (data) {
@@ -294,7 +325,7 @@ export default function LinkForm({
               /* and other goodies */
             }) => (
               <form onSubmit={handleSubmit}>
-                <Stack>
+                <Stack gap={1} pb={2}>
                   {stringFields.map((key) => (
                     <FormControl
                       key={key}
@@ -319,18 +350,63 @@ export default function LinkForm({
                       )}
                     </FormControl>
                   ))}
-                  <Box sx={{ display: 'flex', mt: 1, alignItems: 'center' }}>
-                    <InputLabel htmlFor="appOnly">
-                      {fieldTitles.appOnly}
-                    </InputLabel>
-                    <Switch
-                      id="appOnly"
-                      name="appOnly"
+                  <RadioFormControl>
+                    <FormLabel id="bridgeType-label" sx={{ mr: 2 }}>
+                      {fieldTitles.bridgeType}
+                    </FormLabel>
+                    <RadioGroup
+                      row
+                      aria-labelledby="bridgeType-label"
+                      name="bridgeType"
                       onChange={handleChange}
-                      onBlur={handleBlur}
-                      checked={values.appOnly}
-                    />
-                  </Box>
+                      value={values.bridgeType}
+                    >
+                      <FormControlLabel<BridgeType>
+                        value="normal"
+                        control={<Radio />}
+                        label={BridgeTypeTitle.normal}
+                      />
+                      <FormControlLabel<BridgeType>
+                        value="app_only"
+                        control={<Radio />}
+                        label={BridgeTypeTitle.app_only}
+                      />
+                      <FormControlLabel<BridgeType>
+                        value="app_nudge"
+                        control={<Radio />}
+                        label={BridgeTypeTitle.app_nudge}
+                        disabled
+                      />
+                    </RadioGroup>
+                  </RadioFormControl>
+                  <RadioFormControl>
+                    <FormLabel id="appCall-label" sx={{ mr: 2 }}>
+                      {fieldTitles.appCall}
+                    </FormLabel>
+                    <RadioGroup
+                      row
+                      aria-labelledby="appCall-label"
+                      name="appCall"
+                      onChange={handleChange}
+                      value={values.appCall}
+                    >
+                      <FormControlLabel<AppCallType>
+                        value="safe_only"
+                        control={<Radio />}
+                        label={AppCallTypeTitle.safe_only}
+                      />
+                      <FormControlLabel<AppCallType>
+                        value="always"
+                        control={<Radio />}
+                        label={AppCallTypeTitle.always}
+                      />
+                      <FormControlLabel<AppCallType>
+                        value="none"
+                        control={<Radio />}
+                        label={AppCallTypeTitle.none}
+                      />
+                    </RadioGroup>
+                  </RadioFormControl>
                   <FormControl
                     error={!!errors.expireDateString}
                     variant="standard"
@@ -353,12 +429,12 @@ export default function LinkForm({
                       </FormHelperText>
                     )}
                   </FormControl>
+                  <FormControl>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {data ? '수정' : '등록'}
+                    </Button>
+                  </FormControl>
                 </Stack>
-                <Box textAlign="right" sx={{ my: 1 }}>
-                  <Button type="submit" disabled={isSubmitting}>
-                    {data ? '수정' : '등록'}
-                  </Button>
-                </Box>
               </form>
             )}
           </Formik>

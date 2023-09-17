@@ -26,7 +26,7 @@ export default function Link({
     [currentHref, isIOS, linkData],
   );
 
-  const isAppOnly = linkData?.appOnly && appLink;
+  const isAppOnly = linkData?.bridgeType === 'app_only' && appLink;
   useEffect(() => {
     if (!linkData) {
       alert(message);
@@ -98,7 +98,7 @@ export const getServerSideProps = async ({
       }
     } else {
       // 크롤러 or PC 에 앱전용이 아닌경우, 바로 redirect
-      if (isRobot(ua.ua) || (data && !data.appOnly)) {
+      if (isRobot(ua.ua) || data.bridgeType === 'normal') {
         return {
           redirect: {
             permanent: false,

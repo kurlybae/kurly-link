@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { AppCallTypeTitle, BridgeTypeTitle } from '@/shared/constants/titles';
 
 type LinkDataGridColDef = GridColDef<LinkData> & {
   field: keyof LinkData | string;
@@ -73,11 +74,20 @@ export default function LinkDataTable({
         sortable: false,
       },
       {
-        field: 'appOnly',
-        headerName: '앱 전용',
+        field: 'bridgeType',
+        headerName: '타입',
         width: 70,
-        sortable: false,
-        type: 'boolean',
+        align: 'center',
+        headerAlign: 'center',
+        valueGetter: ({ row: { bridgeType } }) => BridgeTypeTitle[bridgeType],
+      },
+      {
+        field: 'appCall',
+        headerName: '앱 자동호출',
+        width: 100,
+        align: 'center',
+        headerAlign: 'center',
+        valueGetter: ({ row: { appCall } }) => AppCallTypeTitle[appCall],
       },
       {
         field: 'registerName',
@@ -153,13 +163,15 @@ export default function LinkDataTable({
 
   return (
     <DataGrid<LinkData>
-      sortModel={[{ field: 'registerDate', sort: 'desc' }]}
       rows={data ?? []}
       getRowId={(x) => x.key}
       columns={columns}
       initialState={{
         pagination: {
           paginationModel: { page: 0, pageSize: 10 },
+        },
+        sorting: {
+          sortModel: [{ field: 'registerDate', sort: 'desc' }],
         },
       }}
       pageSizeOptions={[5, 10]}

@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import storage from '@/shared/libs/storage';
-import { LinkFormData } from '@/types';
+import { CoreLinkData, LinkFormData } from '@/types';
 import { KEY_LENGTH } from '@/shared/constants/key';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/pages/api/auth/[...nextauth]';
@@ -14,10 +14,19 @@ import DuplicatedError from '@/shared/libs/errors/DuplicatedError';
 // const genKey = customAlphabet(KEY_BASE);
 
 function genHashKey(link: LinkFormData) {
-  const data =
-    link.webUrl + (link.aosUrl ?? '-') + (link.iosUrl ?? '-') + link.appOnly;
+  const data: CoreLinkData = {
+    webUrl: link.webUrl,
+    aosUrl: link.aosUrl,
+    iosUrl: link.iosUrl,
+    bridgeType: link.bridgeType,
+    bridgeTemplate: link.bridgeTemplate,
+    appCall: link.appCall,
+  };
+  const str = Object.values(data)
+    .map((x) => (x ? x : ''))
+    .join(';');
   return createHash('sha512')
-    .update(data)
+    .update(str)
     .digest('base64url')
     .slice(0, KEY_LENGTH);
 }

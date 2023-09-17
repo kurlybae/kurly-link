@@ -1,8 +1,16 @@
-export interface LinkFormData {
+export type BridgeType = 'normal' | 'app_only' | 'app_nudge';
+export type AppCallType = 'none' | 'safe_only' | 'always';
+
+export interface CoreLinkData {
   webUrl: string;
   iosUrl: string | null;
   aosUrl: string | null;
-  appOnly: boolean;
+  bridgeType: BridgeType;
+  bridgeTemplate: string | null;
+  appCall: AppCallType;
+}
+
+export interface LinkFormData extends CoreLinkData {
   expireDate: number;
 }
 

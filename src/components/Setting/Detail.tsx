@@ -86,7 +86,7 @@ export default function Detail({
           <h2>{key}</h2>{' '}
           {data && (
             <>
-              {data.appOnly && (
+              {data.bridgeType === 'app_only' && (
                 <Chip label="앱 전용" color="primary" variant="outlined" />
               )}
               <Table>
